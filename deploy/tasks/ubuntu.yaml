@@ -56,6 +56,11 @@
       - docker-compose-plugin
     state: present
 
+- name: add current user to the Docker group for sudo access
+  shell: |
+    sudo usermod -aG docker $USER \\
+    && newgrp docker
+
 - name: install kind
   block:
     - name: check if kind is installed
