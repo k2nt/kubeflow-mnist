@@ -7,7 +7,8 @@
 - name: install dependencies
   apt:
     name:
-      - net-tools
+      - curl
+      - wget
       - ca-certificates
       - git
     state: present
@@ -19,11 +20,20 @@
     mode: '0755'
   
 - name: add docker repo to apt
-  shell: |
-    echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  block:
+    - name: check if docker repo is already added to apt
+      ansible.builtin.command: grep -R "download.docker.com/linux/ubuntu" /etc/apt/sources.list.d/
+      register: docker_repo_exists
+      failed_when: false
+      changed_when: false
+
+    - name: add docker repo to apt
+      when: docker_repo_exists.rc != 0
+      shell: |
+        echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 - name: update apt package list
   apt:
@@ -40,7 +50,44 @@
     state: present
 
 - name: install kind
+  block:
+    - name: check if kind is installed
+      command: which kind
+      register: kind_exists
+      failed_when: false
+      changed_when: false
+
+    - name: install kind
+      when: kind_exists.rc != 0
+      shell: |
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v{{ version_kind }}/kind-linux-{{ architecture }} \
+        && chmod +x ./kind \
+        && sudo mv ./kind /usr/local/bin
+
+- name: install kustomize
+  block:
+    - name: check if kustomize is installed
+      command: which kustomize
+      register: kustomize_exists
+      failed_when: false
+      changed_when: false
+
+    - name: install kustomize
+      when: kustomize_exists.rc != 0
+      shell: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash \
+        && chmod +x kustomize \
+        && mv ./kustomize /usr/local/bin
+
+- name: check if kubectl is installed
+  command: which kubectl
+  register: kubectl_exists
+  failed_when: false
+  changed_when: false
+
+- name: install kubectl
   shell: |
-    [ $(uname -m) = aarch64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-arm64 \
-    && chmod +x ./kind \
-    && sudo mv ./kind /usr/local/bin/kind
+    curl -LO "https://dl.k8s.io/release/v{{ version_kubectl }}/bin/linux/{{ architecture }}/kubectl" \
+    && chmod +x kubectl \
+    && mv ./kubectl /usr/local/bin
+  when: kubectl_exists.rc != 0

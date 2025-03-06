@@ -4,13 +4,16 @@
 
   vars:
     # version_python: "3.12.9"
+    architecture: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
     version_docker: "28.0.1"
     version_kustomize: "5.6.0"
+    version_kind: "0.27.0"
+    version_kubectl: "1.32.2"
     kubeflow_kubeconfig: "./kubeflow-mnist/kubeconfig.yaml"
 
   environment:
-    KUBECONFIG: "{{ kubeflow_kubeconfig  }}"
+    KUBECONFIG: "{{ kubeflow_kubeconfig }}"
 
   tasks:
     - import_tasks: tasks/ubuntu.yaml
-    # - import_tasks: tasks/kubeflow.yaml
+    - import_tasks: tasks/kubeflow.yaml

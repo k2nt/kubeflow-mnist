@@ -1,0 +1,30 @@
+---
+- name: disable swap
+  block:
+    - name: disable swap
+      ansible.builtin.command: swapoff -a
+      changed_when: false
+
+    - name: disable swap in fstab
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+        replace: '# \1'
+
+- name: setup ubuntu firewall
+  block:
+    - name: enable firewall
+      community.general.ufw:
+        state: "enabled"
+
+    - name: firewall allow ssh
+      community.general.ufw:
+        rule: allow
+        port: ssh
+        proto: tcp
+
+    - name: firewall allow kubernetes
+      community.general.ufw:
+        rule: allow
+        port: 6443
+        proto: tcp
