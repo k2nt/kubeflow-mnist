@@ -27,6 +27,13 @@
       failed_when: false
       changed_when: false
 
+    - name: add docker GPG key
+      shell: |
+        sudo apt-get update \
+        && sudo apt-get install ca-certificates curl \
+        && sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
+        && sudo chmod a+r /etc/apt/keyrings/docker.asc
+
     - name: add docker repo to apt
       when: docker_repo_exists.rc != 0
       shell: |
