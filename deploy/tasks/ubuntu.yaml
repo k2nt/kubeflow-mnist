@@ -1,0 +1,46 @@
+---
+- name: update and upgrade apt packages
+  apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: install dependencies
+  apt:
+    name:
+      - net-tools
+      - ca-certificates
+      - git
+    state: present
+
+- name: create keyring directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  
+- name: add docker repo to apt
+  shell: |
+    echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+    $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+- name: update apt package list
+  apt:
+    update_cache: yes
+
+- name: install docker
+  apt:
+    name:
+      - docker-ce 
+      - docker-ce-cli 
+      - containerd.io 
+      # - docker-buildx-plugin 
+      - docker-compose-plugin
+    state: present
+
+- name: install kind
+  shell: |
+    [ $(uname -m) = aarch64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-linux-arm64 \
+    && chmod +x ./kind \
+    && sudo mv ./kind /usr/local/bin/kind
